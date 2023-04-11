@@ -14,11 +14,17 @@ use Notion\Databases\Query\Sort;
 
 class NotionController extends AbstractController
 {
+    protected string $token;
+
+    public function __construct( string $token){
+        $this->token = $token;
+    }
+
     #[Route('/notion', name: 'app_notion')]
     public function index(): JsonResponse
     {
 
-    $notion = Notion::create(getenv("NOTION_TOKEN"));
+    $notion = Notion::create($this->token);
 
     $databaseId = "410ad313-1241-4643-93e3-4d16ccb743b6";
     $database = $notion->databases()->find($databaseId);

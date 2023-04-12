@@ -19,7 +19,7 @@ class GitlabNotionController extends AbstractController
     #[Route('/gitlab/notion', name: 'app_gitlab_notion')]
     public function index(): JsonResponse
     {
-        $issues = $this->client->repositories()->branches('25549769');
+        $issues = $this->client->mergeRequests()->update();
         dump($issues);
         die;
         return $this->json([

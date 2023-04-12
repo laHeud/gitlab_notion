@@ -18,6 +18,7 @@
         "symfony/http-client": "6.2.*",
         "symfony/monolog-bundle": "^3.8",
         "symfony/runtime": "6.2.*",
+        "symfony/serializer": "6.2.*",
         "symfony/yaml": "6.2.*",
         "zeichen32/gitlabapibundle": "^6.0"
     },
@@ -31,7 +32,8 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "App\\": "src/",
+            "Notion\\": "vendor/mariosimao/notion-sdk-php/src/"
         }
     },
     "autoload-dev": {

@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: transparent;
+            border-spacing: 0;
+            box-shadow: 0 2px 4px 0 rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.5rem;
+            vertical-align: top;
+            border-top: 1px solid #e6e6e6;
+        }
+
+        thead th {
+            background-color: #f5f5f5;
+            color: #757575;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        tbody tr:hover {
+            background-color:#f5f5f5;
+        }
+    </style>
+{% endblock %}
+
+
+{% block body %}
+    <h1>Updates</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for update in updates %}
+                <tr>
+                    <td>{{ update.field }}</td>
+                    <td>{{ update.value }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

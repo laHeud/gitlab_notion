@@ -2,22 +2,31 @@
 
 namespace App\Service;
 
-
+use Gitlab\Client;
 
 class GitlabService
+
 {
+    public const ID_PROJET = 45064781;
 
-    public function getIdInBranch(array $mr) :string
+    protected Client $client;
+
+    public function __construct(Client $client)
     {
-        preg_match('/feature\/UC-(\d+)-/', $mr['object_attributes']['source_branch'], $matches);
-
-        return $matches[1];
+        $this->client = $client;
+    
     }
 
-    public function getUrlInBranch(array $mr) :string
+    public function getClient() :Client
     {
-        return $mr['object_attributes']['url'];
+        return $this->client;
+    }
 
+    public function getIdInBranch(string $source) :string
+    {
+        preg_match('/feature\/UC-(\d+)-/', $source, $matches);
+
+        return $matches[1];
     }
 
 

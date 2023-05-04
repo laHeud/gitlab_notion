@@ -3,50 +3,73 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\NotionService;
+use Notion\Blocks\Paragraph;
+use Notion\Common\RichText;
+use Notion\Common\Color;
 
 class NotionController extends AbstractController
 {
     public NotionService $notion;
+   // public BlockInterface $block;
+    private const DATABASE_ID = "410ad313-1241-4643-93e3-4d16ccb743b6";
 
     public function __construct( NotionService $notion){
         
         $this->notion = $notion;
+     //   $this->block = $block;
     }
 
     #[Route('/notion', name: 'app_notion')]
 
-    public function index(): JsonResponse
+    public function index(): Response
     {
 
-    $notion = $this->notion->token();
-
-    $databaseId = "410ad313-1241-4643-93e3-4d16ccb743b6";
-    $database = $notion->databases()->find($databaseId);
+    $database = $this->notion->getDatabaseById(self::DATABASE_ID);
     
-    $result = $notion->databases()->query($database, $this->notion->queryProperty("PlusID",1));
-
-    $pages = $result->pages; // array of Page
-    $result->hasMore; // true or false
-    $result->nextCursor; // cursor ID or null
-
-    $page = $notion->pages()->find($pages[0]->id);
+    $result = $this->notion->queryPagesByPropertyId($database,"PlusID", 8);
     
-    /** @var \Notion\Pages\Properties\RichTextProperty $property */
-    $property = $page->getProperty("name");
+    $page = $this->notion->getPageById($result[0]->id);
+    //dd($database->properties()->getAll());
+    //$this->notion->filterPropertiesByPrefix((self::DATABASE_ID),$page, 'lala');
+    $this->notion->updatePagePropertyLink($page, "Gitlab", "https://url.com");
+    //$this->notion->updatePagePropertyLink($page, "Gitlab", "https://gitlab.com/unagi-games/test-webhook/-/merge_requests/2");
 
-    // Update property
-    $updatedRelease = \Notion\Pages\Properties\RichTextProperty::fromString("bonjour");
-    $uppage = $page->addProperty("name", $updatedRelease);
 
-    // Send to Notion
-    $notion->pages()->update($uppage);
 
-        return $this->json([
-            'message' => 'Welcome to your new controller!',
-            'path' => 'src/Controller/NotionController.php',
-        ]);
+    // $lol = $this->block->fromArray($requestBody);
+    // dd($lol);
+
+// Effectuez une requête à l'API Notion en utilisant l'endpoint approprié.
+//$lala = Paragraph::create()->changeText([RichText::fromString('👨‍💻lala jai reussi')->color(Color::Orange)->bold()]);;
+//$this->notion->appendBlock($result[0]->id, [$lala]); 
+
+    
+    // Build the data array to pass to the view
+    $data = [
+        'updates' => [
+            [
+                'field' => 'Gitlab',
+                'value' => 'https://gitlab.com/unagi-games/test-webhook/-/merge_requests/2'
+            ]
+        ]
+    ];
+
+     /** @var \Notion\Pages\Properties\RichTextProperty $property */
+     //$property = $page->getProperty("Gitlab");
+     //dd($property->toArray()['url']);
+
+    // // Update property
+    // $updatedRelease = \Notion\Pages\Properties\RichTextProperty::fromString("bonjour");
+    // $uppage = $page->addProperty("name", $updatedRelease);
+
+    // // Send to Notion
+    // $notion->pages()->update($uppage);
+
+    // Render the view using the Twig template
+    return $this->render('update.html.twig', $data);
+
     }
 }

@@ -54,7 +54,7 @@ class WebhookController extends AbstractController
 
 
         $database = $this->notion->getDatabaseById(self::DATABASE_ID);
-        $result = $this->notion->queryPagesByPropertyId($database,"PlusID", 8);
+        $result = $this->notion->queryPagesByPropertyId($database,"PlusID", $id);
         $page = $this->notion->getPageById($result[0]->id);
 
         $urlNotion = $page->url;
@@ -69,14 +69,9 @@ class WebhookController extends AbstractController
 
         /** @var \Notion\Pages\Properties\RichTextProperty $property */
         $property = $page->getProperty("Gitlab");
-
-        if ($property->toArray()['url'] !== null) {
-            http_response_code(200);
-            die('Le lien est déjà présent dans le board Notion');
-        }
-        
+       
         // Send to Notion
-        $this->notion->updatePagePropertyLink($page, "Gitlab_",$url );
+        $this->notion->updatePagePropertyLink($page, "Gitlab",$url );
 
 
         return new Response('OK');

@@ -15,10 +15,10 @@ use App\Service\MergeRequestService;
 class WebhookController extends AbstractController
 {
     private const DATABASE_ID = "410ad313-1241-4643-93e3-4d16ccb743b6";
-    private $logger;
-    private $notion;
-    private $gitlab;
-    private $mr;
+    private LoggerInterface $logger;
+    private NotionService $notion;
+    private GitlabService $gitlab;
+    private MergeRequestService $mr;
 
 
     public function __construct(

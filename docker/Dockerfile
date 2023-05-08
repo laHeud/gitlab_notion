@@ -1,29 +1,29 @@
-FROM php:8.0-alpine
+FROM php:8.1.13-apache
 
-# Installation des dépendances nécessaires
-RUN apk update \
-    && apk add --no-cache bash git zip unzip
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-# Configuration de l'environnement de production
-ENV APP_ENV=prod
+RUN chmod +x /usr/local/bin/install-php-extensions && \
+    install-php-extensions intl && \
+    curl -sSk https://getcomposer.org/installer | php -- --disable-tls && \
+    mv composer.phar /usr/local/bin/composer && \
+    apt update && apt install -yqq zip git
 
-# Création du répertoire de l'application
-WORKDIR /var/www/
-
-# Copie des fichiers de l'application dans le répertoire de travail
 COPY . /var/www/
 
-# Installation des dépendances avec Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-# RUN composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-suggest --no-interaction --no-scripts
 
-# Configuration du serveur web Nginx
-RUN apk add --no-cache nginx
-COPY ./nginx.conf /etc/nginx/nginx.conf
-RUN mkdir -p /run/nginx
+ENV APP_ENV=prod
 
-# Exposition du port 8080 pour l'écoute de Nginx
-EXPOSE 8080
+RUN rm -rf /var/www/vendor && \
+    rm -rf /var/www/.git && \
+    rm -rf /var/www/.env.local && \
+    cd /var/www && \
+    composer install && \
+    php bin/console cache:clear && \
+    php bin/console cache:warmup && \
+    chown -R www-data:www-data /var/www
+    
+WORKDIR /var/www/
 
-# Définition de la commande pour lancer l'application
-CMD ["sh", "-c", "php-fpm && nginx -g 'daemon off;'"] 
+ENTRYPOINT ["bash", "./docker/docker.sh"]
+
+EXPOSE 80

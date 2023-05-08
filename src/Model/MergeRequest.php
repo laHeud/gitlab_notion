@@ -19,27 +19,27 @@ class MergeRequest
         $this->description = $description;
     }
 
-    public function getId() :string
+    public function getId(): string
     {
         return $this->id;
     }
 
-    public function getUrl() :string
+    public function getUrl(): string
     {
         return $this->url;
     }
 
-    public function getTitle() :string
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    public function getIid() :string
+    public function getIid(): string
     {
         return $this->iid;
     }
 
-    public function getDescription() :string
+    public function getDescription(): string
     {
         return $this->description;
     }

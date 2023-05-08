@@ -1,251 +1,288 @@
-# Parameters
-SHELL         = sh
-PROJECT       = UC
-GIT_AUTHOR    = Clement
-HTTP_PORT     = 8000
+#---Symfony-And-Docker-Makefile---------------#
+# Author: https://github.com/yoanbernabeu
+# License: MIT
+#---------------------------------------------#
 
-# Executables
-EXEC_PHP      = php
-COMPOSER      = composer
-REDIS         = redis-cli
-GIT           = git
-YARN          = yarn
-NPX           = npx
+#---VARIABLES---------------------------------#
+#---DOCKER---#
+DOCKER = docker
+DOCKER_RUN = $(DOCKER) run
+DOCKER_COMPOSE = docker compose
+DOCKER_COMPOSE_UP = $(DOCKER_COMPOSE) up -d
+DOCKER_COMPOSE_STOP = $(DOCKER_COMPOSE) stop
+#------------#
 
-# Alias
-SYMFONY       = $(EXEC_PHP) bin/console
-# if you use Docker you can replace with: "docker-compose exec my_php_container $(EXEC_PHP) bin/console"
+#---SYMFONY--#
+SYMFONY = symfony
+SYMFONY_SERVER_START = $(SYMFONY) serve -d
+SYMFONY_SERVER_STOP = $(SYMFONY) server:stop
+SYMFONY_CONSOLE = $(SYMFONY) console
+SYMFONY_LINT = $(SYMFONY_CONSOLE) lint:
+#------------#
 
-# Executables: vendors
-PHPUNIT       = ./vendor/bin/phpunit
-PHPSTAN       = ./vendor/bin/phpstan
-PHP_CS_FIXER  = ./vendor/bin/php-cs-fixer
-PHPMETRICS    = ./vendor/bin/phpmetrics
+#---COMPOSER-#
+COMPOSER = composer
+COMPOSER_INSTALL = $(COMPOSER) install
+COMPOSER_UPDATE = $(COMPOSER) update
+#------------#
 
-# Executables: local only
-SYMFONY_BIN   = symfony
-BREW          = brew
-DOCKER        = docker
-DOCKER_COMP   = docker compose
+#---NPM-----#
+NPM = npm
+NPM_INSTALL = $(NPM) install --force
+NPM_UPDATE = $(NPM) update
+NPM_BUILD = $(NPM) run build
+NPM_DEV = $(NPM) run dev
+NPM_WATCH = $(NPM) run watch
+NPM_LINT = $(NPM) run lint
+#------------#
 
-# Executables: prod only
-CERTBOT       = certbot
+#---PHPQA---#
+PHPQA = jakzal/phpqa:php8.1
+PHPQA_RUN = $(DOCKER_RUN) --init --rm -v $(PWD):/project -w /project $(PHPQA)
+#------------#
 
-# Misc
-.DEFAULT_GOAL = help
-.PHONY        : # Not needed here, but you can put your all your targets to be sure
-                # there is no name conflict between your files and your targets.
+#---PHPUNIT-#
+PHPUNIT = APP_ENV=test $(SYMFONY) php bin/phpunit
+#------------#
+#---------------------------------------------#
 
-## —— 🐝 The Strangebuzz Symfony Makefile 🐝 ———————————————————————————————————
-help: ## Outputs this help screen
+## === 🆘  HELP ==================================================
+help: ## Show this help.
+	@echo "Symfony-And-Docker-Makefile"
+	@echo "---------------------------"
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
 	@grep -E '(^[a-zA-Z0-9_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}{printf "\033[32m%-30s\033[0m %s\n", $$1, $$2}' | sed -e 's/\[32m##/[33m/'
+#---------------------------------------------#
 
-## —— Composer 🧙‍♂️ ————————————————————————————————————————————————————————————
-install: composer.lock ## Install vendors according to the current composer.lock file
-	@$(COMPOSER) install --no-progress --prefer-dist --optimize-autoloader
+## === 🚀  APPLICATION SOSapp ====================================
+app-import-user: ## Import user from Office 365
+	$(SYMFONY_CONSOLE) app:import-user
+.PHONY: app-import-user
 
-## —— PHP 🐘 (macOS with brew) —————————————————————————————————————————————————
-php-upgrade: ## Upgrade PHP to the last version
-	@$(BREW) upgrade php
+app-async-mail: ## Send async mail
+	$(SYMFONY_CONSOLE) messenger:consume async -vv
+.PHONY: app-async-mail
 
-php-set-8-2: ## Set php 8.2 as the current PHP version
-	@$(BREW) unlink php
-	@$(BREW) link --overwrite php@8.2
+## === 🐋  DOCKER ================================================
+docker-up: ## Start docker containers.
+	$(DOCKER_COMPOSE_UP)
+.PHONY: docker-up
 
-php-set-8-0: ## Set php 8.0 as the current PHP version
-	@$(BREW) unlink php
-	@$(BREW) link --overwrite php@8.0
+docker-stop: ## Stop docker containers.
+	$(DOCKER_COMPOSE_STOP)
+.PHONY: docker-stop
 
-php-set-8-1: ## Set php 8.1 as the current PHP version
-	@$(BREW) unlink php
-	@$(BREW) link --overwrite php@8.1
+docker-build: ## Build docker containers.
+	$(DOCKER) build . -f ./docker/Dockerfile -t unagi/gitlab_notion:latest
+.PHONY: docker-build
 
-# Snippet L53+14 in _127.html.twig
+docker-push: ## Push docker containers.
+	$(DOCKER) push unagi/gitlab_notion:latest
+.PHONY: docker-push
+#---------------------------------------------#
 
-## —— Symfony 🎵 ———————————————————————————————————————————————————————————————
-sf: ## List all Symfony commands
-	@$(SYMFONY)
+## === 🎛️  SYMFONY ===============================================
+sf-start: ## Start symfony server.
+	$(SYMFONY_SERVER_START)
+.PHONY: sf-start
 
-cc: ## Clear the cache. DID YOU CLEAR YOUR CACHE????
-	@$(SYMFONY) c:c
+sf-stop: ## Stop symfony server.
+	$(SYMFONY_SERVER_STOP)
+.PHONY: sf-stop
 
-warmup: ## Warmup the cache
-	@$(SYMFONY) cache:warmup
+sf-cc: ## Clear symfony cache.
+	$(SYMFONY_CONSOLE) cache:clear
+.PHONY: sf-cc
 
-fix-perms: ## Fix permissions of all var files
-	@chmod -R 777 var/*
+sf-log: ## Show symfony logs.
+	$(SYMFONY) server:log
+.PHONY: sf-log
 
-assets: purge ## Install the assets with symlinks in the public folder
-	@$(SYMFONY) assets:install public/  # Don't use "--symlink --relative" with a Docker env
+sf-dc: ## Create symfony database.
+	$(SYMFONY_CONSOLE) doctrine:database:create --if-not-exists
+.PHONY: sf-dc
 
-purge: ## Purge cache and logs
-	@rm -rf var/cache/* var/logs/*
+sf-dd: ## Drop symfony database.
+	$(SYMFONY_CONSOLE) doctrine:database:drop --if-exists --force
+.PHONY: sf-dd
 
-## —— Symfony binary 💻 ————————————————————————————————————————————————————————
-cert-install: ## Install the local HTTPS certificates
-	@$(SYMFONY_BIN) server:ca:install
+sf-mm: ## Make migrations.
+	$(SYMFONY_CONSOLE) make:migration
+.PHONY: sf-mm
 
-serve: ## Serve the application with HTTPS support (add "--no-tls" to disable https)
-	@$(SYMFONY_BIN) serve --daemon --port=$(HTTP_PORT)
+sf-dmm: ## Migrate.
+	$(SYMFONY_CONSOLE) doctrine:migrations:migrate --no-interaction
+.PHONY: sf-dmm
 
-unserve: ## Stop the webserver
-	@$(SYMFONY_BIN) server:stop
+sf-fixtures: ## Load fixtures.
+	$(MAKE) sf-dd; \
+	$(MAKE) sf-dc; \
+	$(MAKE) sf-dmm; \
+	$(SYMFONY_CONSOLE) doctrine:fixtures:load --no-interaction
+.PHONY: sf-fixtures
 
-# Snippet L90+8 => templates/blog/posts/_64.html.twig
+sf-perm: ## Fix permissions.
+	chmod -R 777 var
+.PHONY: sf-perm
 
-## —— elasticsearch 🔎 —————————————————————————————————————————————————————————
-populate: ## Reset and populate the Elasticsearch index
-	#@$(SYMFONY) fos:elastica:reset
-	#@$(SYMFONY) fos:elastica:populate --index=app
-	@$(SYMFONY) strangebuzz:index-articles
+sf-sudo-perm: ## Fix permissions with sudo.
+	sudo chmod -R 777 var
+.PHONY: sf-sudo-perm
 
-# Snippet L102+4 => templates/blog/posts/_51.html.twig
+sf-dump-env: ## Dump env.
+	$(SYMFONY_CONSOLE) debug:dotenv
+.PHONY: sf-dump-env
 
-list-index: ## List all indexes on the cluster
-	@curl http://localhost:9209/_cat/indices?v
+sf-dump-env-container: ## Dump Env container.
+	$(SYMFONY_CONSOLE) debug:container --env-vars
+.PHONY: sf-dump-env-container
 
-delete-index: ## Delete a given index (parameters: index=app_2021-01-05-075600")
-	@curl -X DELETE "localhost:9209/$(index)?pretty"
+sf-dump-routes: ## Dump routes.
+	$(SYMFONY_CONSOLE) debug:router
+.PHONY: sf-dump-routes
 
-## —— Docker 🐳 ————————————————————————————————————————————————————————————————
-up: ## Start the docker hub (PHP,caddy,MySQL,redis,adminer,elasticsearch)
-	$(DOCKER_COMP) up --detach
+sf-open: ## Open symfony server.
+	$(SYMFONY) open:local
+.PHONY: sf-open
 
-build: ## Builds the images (php + caddy)
-	$(DOCKER_COMP) build --pull --no-cache
+sf-check-requirements: ## Check requirements.
+	$(SYMFONY) check:requirements
+.PHONY: sf-check-requirements
+#---------------------------------------------#
 
-down: ## Stop the docker hub
-	$(DOCKER_COMP) down --remove-orphans
+## === 📦  COMPOSER ==============================================
+composer-install: ## Install composer dependencies.
+	$(COMPOSER_INSTALL)
+.PHONY: composer-install
 
-check: ## Docker check
-	@$(DOCKER) info > /dev/null 2>&1                                                                   # Docker is up
-	@test '"healthy"' = `$(DOCKER) inspect --format "{{json .State.Health.Status }}" strangebuzz-db-1` # Db container is up and healthy
+composer-update: ## Update composer dependencies.
+	$(COMPOSER_UPDATE)
+.PHONY: composer-update
+#---------------------------------------------#
 
-# Snippet L126+2 => templates/snippet/code/_135.html.twig
+## === 📦  NPM ===================================================
+npm-install: ## Install npm dependencies.
+	$(NPM_INSTALL)
+.PHONY: npm-install
 
-sh: ## Log to the docker container
-	@$(DOCKER_COMP) exec php sh
+npm-update: ## Update npm dependencies.
+	$(NPM_UPDATE)
+.PHONY: npm-update
 
-logs: ## Show live logs
-	@$(DOCKER_COMP) logs --tail=0 --follow
+npm-build: ## Build assets.
+	$(NPM_BUILD)
+.PHONY: npm-build
 
-wait-for-mysql: ## Wait for MySQL to be ready
-	@bin/wait-for-mysql.sh
+npm-dev: ## Build assets in dev mode.
+	$(NPM_DEV)
+.PHONY: npm-dev
 
-wait-for-elasticsearch: ## Wait for Elasticsearch to be ready
-	@bin/wait-for-elasticsearch.sh
+npm-watch: ## Watch assets.
+	$(NPM_WATCH)
+.PHONY: npm-watch
 
-bash: ## Connect to the application container
-	@$(DOCKER) container exec -it php bash
+npm-lint: ## Lint assets.
+	$(NPM_LINT)
+.PHONY: npm-lint
+#---------------------------------------------#
 
-## —— Project 🐝 ———————————————————————————————————————————————————————————————
-start: up wait-for-mysql load-fixtures populate serve ## Start docker, load fixtures, populate the Elasticsearch index and start the webserver
+## === 🐛  PHPQA =================================================
+qa-cs-fixer-dry-run: ## Run php-cs-fixer in dry-run mode.
+	$(PHPQA_RUN) php-cs-fixer fix ./src --rules=@Symfony --verbose --dry-run
+.PHONY: qa-cs-fixer-dry-run
 
-reload: load-fixtures populate ## Load fixtures and repopulate the Meilisearch index
+qa-cs-fixer: ## Run php-cs-fixer.
+	$(PHPQA_RUN) php-cs-fixer fix ./src --rules=@Symfony --verbose
+.PHONY: qa-cs-fixer
 
-stop: down unserve ## Stop docker and the Symfony binary server
+qa-phpstan: ## Run phpstan.
+	$(PHPQA_RUN) phpstan analyse ./src --level=3
+.PHONY: qa-phpstan
 
-cc-redis: ## Flush all Redis cache
-	@$(REDIS) -p 6389 flushall
+qa-security-checker: ## Run security-checker.
+	$(SYMFONY) security:check
+.PHONY: qa-security-checker
 
-commands: ## Display all commands in the project namespace
-	@$(SYMFONY) list $(PROJECT)
+qa-phpcpd: ## Run phpcpd (copy/paste detector).
+	$(PHPQA_RUN) phpcpd ./src
+.PHONY: qa-phpcpd
 
-load-fixtures: ## Build the DB, control the schema validity, load fixtures and check the migration status
-	@$(SYMFONY) doctrine:cache:clear-metadata
-	@$(SYMFONY) doctrine:database:create --if-not-exists
-	@$(SYMFONY) doctrine:schema:drop --force
-	@$(SYMFONY) doctrine:schema:create
-	@$(SYMFONY) doctrine:schema:validate
-	@$(SYMFONY) hautelook:fixtures:load --no-interaction
+qa-php-metrics: ## Run php-metrics.
+	$(PHPQA_RUN) phpmetrics --report-html=var/phpmetrics ./src
+.PHONY: qa-php-metrics
 
-init-snippet: ## Initialize a new snippet
-	@$(SYMFONY) $(PROJECT):init-snippet
+qa-lint-twigs: ## Lint twig files.
+	$(SYMFONY_LINT)twig ./templates
+.PHONY: qa-lint-twigs
 
-## —— Tests ✅ —————————————————————————————————————————————————————————————————
-test: phpunit.xml check ## Run tests with optionnal suite and filter
-	@$(eval testsuite ?= 'all')
-	@$(eval filter ?= '.')
-	@$(PHPUNIT) --testsuite=$(testsuite) --filter=$(filter) --stop-on-failure
+qa-lint-yaml: ## Lint yaml files.
+	$(SYMFONY_LINT)yaml ./config
+.PHONY: qa-lint-yaml
 
-# Snippet L171+4 => templates/blog/posts/_123.html.twig + templates/blog/posts/_178.html.twig
+qa-lint-container: ## Lint container.
+	$(SYMFONY_LINT)container
+.PHONY: qa-lint-container
 
-test-all: phpunit.xml ## Run all tests
-	@$(PHPUNIT) --stop-on-failure
+qa-lint-schema: ## Lint Doctrine schema.
+	$(SYMFONY_CONSOLE) doctrine:schema:validate --skip-sync -vvv --no-interaction
+.PHONY: qa-lint-schema
+#---------------------------------------------#
 
-## —— Coding standards ✨ ——————————————————————————————————————————————————————
-cs: fix-php fix-js stan ## Run all coding standards checks
+## === 🔎  TESTS =================================================
+tests: ## Run tests.
+	$(PHPUNIT) --testdox
+.PHONY: tests
 
-static-analysis: stan ## Run the static analysis (PHPStan)
+tests-coverage: ## Run tests with coverage.
+	$(PHPUNIT) --coverage-html var/coverage
+.PHONY: tests-coverage
+#---------------------------------------------#
 
-stan: ## Run PHPStan
-	@$(PHPSTAN) analyse -c phpstan.neon -l 6 src --memory-limit 1G
+## === ⭐  OTHER =================================================
+before-commit: ## Run before commit.
+	$(MAKE) qa-cs-fixer
+	$(MAKE) qa-phpstan
+	$(MAKE) qa-security-checker
+	$(MAKE) qa-phpcpd
+	$(MAKE) qa-lint-twigs
+	$(MAKE) qa-lint-yaml
+	$(MAKE) qa-lint-container
+	$(MAKE) qa-lint-schema
+	$(MAKE) npm-lint
+	$(MAKE) tests
+.PHONY: before-commit
 
-lint-php: ## Lint files with php-cs-fixer
-	@$(PHP_CS_FIXER) fix --allow-risky=yes --dry-run --config=php-cs-fixer.php
+first-install: ## First install.
+	$(MAKE) docker-up
+	$(MAKE) composer-install
+	$(MAKE) npm-install
+	$(MAKE) npm-build
+	$(MAKE) sf-perm
+	$(MAKE) sf-dc
+	$(MAKE) sf-dmm
+	$(MAKE) sf-start
+	$(MAKE) sf-open
+.PHONY: first-install
 
-fix-php: ## Fix files with php-cs-fixer
-	@PHP_CS_FIXER_IGNORE_ENV=1 $(PHP_CS_FIXER) fix --allow-risky=yes --config=php-cs-fixer.php
+start: ## Start project.
+	$(MAKE) docker-up
+	$(MAKE) sf-start
+	$(MAKE) sf-open
+.PHONY: start
 
-## —— Deploy & Prod 🚀 —————————————————————————————————————————————————————————
-deploy: ## Full no-downtime deployment with EasyDeploy (with pre-deploy Git hooks)
-	@test -z "`git status --porcelain`"                 # Prevent deploy if there are modified or added files
-	@test -z "`git diff --stat --cached origin/master`" # Prevent deploy if there is something to push on master
-	@$(SYMFONY) deploy -v                               # Deploy with EasyDeploy
+stop: ## Stop project.
+	$(MAKE) docker-stop
+	$(MAKE) sf-stop
+.PHONY: stop
 
-# Snippet L196+4 => templates/snippet/code/_128.html.twig
-
-env-check: ## Check the main ENV variables of the project
-	@printenv | grep -i app_
-
-le-renew: ## Renew Let's Encrypt HTTPS certificates
-	@$(CERTBOT) --apache -d strangebuzz.com -d www.strangebuzz.com
-
-## —— Yarn 🐱 / JavaScript —————————————————————————————————————————————————————
-dev: ## Rebuild assets for the dev env
-	@$(YARN) install --check-files
-	@$(YARN) run encore dev
-
-watch: ## Watch files and build assets when needed for the dev env
-	@$(YARN) run encore dev --watch
-
-encore: ## Build assets for production
-	@$(YARN) run encore production
-
-lint-js: ## Lints JS coding standarts
-	@$(NPX) eslint assets/js
-
-fix-js: ## Fixes JS files
-	@$(NPX) eslint assets/js --fix
-
-## —— Stats 📜 —————————————————————————————————————————————————————————————————
-stats: ## Commits by the hour for the main author of this project
-	@$(GIT) log --author="$(GIT_AUTHOR)" --date=iso | perl -nalE 'if (/^Date:\s+[\d-]{10}\s(\d{2})/) { say $$1+0 }' | sort | uniq -c|perl -MList::Util=max -nalE '$$h{$$F[1]} = $$F[0]; }{ $$m = max values %h; foreach (0..23) { $$h{$$_} = 0 if not exists $$h{$$_} } foreach (sort {$$a <=> $$b } keys %h) { say sprintf "%02d - %4d %s", $$_, $$h{$$_}, "*"x ($$h{$$_} / $$m * 50); }'
-
-## —— JWT 🕸 ———————————————————————————————————————————————————————————————————
-BEARER    = `cat ./config/jwt/bearer.txt`
-BASE_URL  = https://127.0.0.1#https://www.strangebuzz.com
-PORT      = :8000
-
-jwt-generate-keys: ## Generate the main JWT ket set (you can use the "lexik:jwt:generate-keypair" command now)
-	@mkdir -p config/jwt
-	@openssl genpkey -out ./config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096
-	@openssl pkey -in ./config/jwt/private.pem -out ./config/jwt/public.pem -pubout
-
-jwt-create-ok: ## Create a JWT for a valid test account (you can use the "lexik:jwt:generate-token" command now)
-	@curl -s POST -H "Content-Type: application/json" ${BASE_URL}${PORT}/api/login_check -d '{"username":"reader","password":"test"}' | jq .token | sed "s/\"//g"
-
-jwt-create-nok: ## Login attempt with wrong credentials
-	@curl -s POST -H "Content-Type: application/json" ${BASE_URL}${PORT}/api/login_check -d '{"username":"foo","password":"bar"}' | jq
-
-jwt-test: ./config/jwt/bearer.txt ## Test a JWT token to access an API Platform resource
-	@curl -s GET -H 'Cache-Control: no-cache' -H "Content-Type: application/json" -H "Authorization: Bearer ${BEARER}" ${BASE_URL}${PORT}/api/books/1 | jq
-
-# Snippet L231+17 => templates/blog/posts/_126.html.twig
-
-## —— Code Quality reports 📊 ——————————————————————————————————————————————————
-report-metrics: ## Run the phpmetrics report
-	@$(PHPMETRICS) --report-html=var/phpmetrics/ src/
-
-coverage: ## Create the code coverage report with PHPUnit
-	$(EXEC_PHP) -d xdebug.enable=1 -d xdebug.mode=coverage -d memory_limit=-1 vendor/bin/phpunit --coverage-html=var/coverage
+reset-db: ## Reset database.
+	$(eval CONFIRM := $(shell read -p "Are you sure you want to reset the database? [y/N] " CONFIRM && echo $${CONFIRM:-N}))
+	@if [ "$(CONFIRM)" = "y" ]; then \
+		$(MAKE) sf-dd; \
+		$(MAKE) sf-dc; \
+		$(MAKE) sf-dmm; \
+	fi
+.PHONY: reset-db
+#---------------------------------------------#

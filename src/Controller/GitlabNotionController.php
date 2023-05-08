@@ -2,10 +2,10 @@
 
 namespace App\Controller;
 
+use Gitlab\Client;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
-use Gitlab\Client;
 
 class GitlabNotionController extends AbstractController
 {
@@ -19,7 +19,7 @@ class GitlabNotionController extends AbstractController
     #[Route('/gitlab/notion', name: 'app_gitlab_notion')]
     public function index(): JsonResponse
     {
-        $this->client->mergeRequests()->update(45064781,2,["title" => "hey lolo"]);
+        $this->client->mergeRequests()->update(45064781, 2, ['title' => 'hey lolo']);
 
         return $this->json([
             'message' => 'Welcome to your new controller!',

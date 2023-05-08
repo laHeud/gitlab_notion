@@ -4,38 +4,81 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
-use Gitlab\Client as GitlabClient;
-use Brd6\NotionSdkPhp\Client as NotionClient;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Psr\Log\LoggerInterface;
+use App\Service\NotionService;
+use App\Service\GitlabService;
+use App\Service\MergeRequestService;
+
 
 class WebhookController extends AbstractController
 {
-
+    private const DATABASE_ID = "410ad313-1241-4643-93e3-4d16ccb743b6";
     private $logger;
+    private $notion;
+    private $gitlab;
+    private $mr;
 
-    public function __construct(LoggerInterface $logger)
+
+    public function __construct(
+        LoggerInterface $logger, 
+        NotionService $notion, 
+        GitlabService $gitlab,
+        MergeRequestService $mr
+        )
     {
         $this->logger = $logger;
+        $this->notion = $notion;
+        $this->gitlab = $gitlab;
+        $this->mr = $mr;
     }
 
     #[Route('/webhook/gitlab', name: 'app_webhook')]
     public function handleWebhook(Request $request): Response
     {
-        $this->logger->debug('Webhook received', [
-            'request' => $request->getContent(),
-        ]);
+
+        $this->logger->debug('Webhook received', [$request->getContent()]);
+
+
+        $data = json_decode($request->getContent());
+
+        // if ($data === null) {
+        //     throw new \Exception('Bad JSON body from Stripe!');
+        // }
         
-        $data = json_decode($request->getContent(), true);
+
+        $id = $this->gitlab->getIdInBranch($data->object_attributes->source_branch);
+        $url = $data->object_attributes->url;
+        $description = $data->object_attributes->description;
+
+
+        $database = $this->notion->getDatabaseById(self::DATABASE_ID);
+        $result = $this->notion->queryPagesByPropertyId($database,"PlusID", 8);
+        $page = $this->notion->getPageById($result[0]->id);
+
+        $urlNotion = $page->url;
+
+        if (strpos($description, $urlNotion) === false) {
+
+            $newDescription = "Pour plus d'informations, consultez [$id]($urlNotion)\n\n" . $description;
+
+            $this->mr->setBranchDescription($data->object_attributes->iid, ["description" => $newDescription]);
+        }
+
+
+        /** @var \Notion\Pages\Properties\RichTextProperty $property */
+        $property = $page->getProperty("Gitlab");
+
+        if ($property->toArray()['url'] !== null) {
+            http_response_code(200);
+            die('Le lien est déjà présent dans le board Notion');
+        }
         
-        // Afficher les données du webhook pour le débogage
-        dump($data);die;
-   
-        
+        // Send to Notion
+        $this->notion->updatePagePropertyLink($page, "Gitlab_",$url );
+
+
         return new Response('OK');
     }
 }
-
-   
-

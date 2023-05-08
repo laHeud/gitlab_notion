@@ -35,6 +35,7 @@ class NotionController extends AbstractController
     $result = $this->notion->queryPagesByPropertyId($database,"PlusID", 8);
     
     $page = $this->notion->getPageById($result[0]->id);
+    dd($property = $page->getProperty("Gitlab")->toArray());
     //dd($database->properties()->getAll());
     //$this->notion->filterPropertiesByPrefix((self::DATABASE_ID),$page, 'lala');
     $this->notion->updatePagePropertyLink($page, "Gitlab", "https://url23.com");

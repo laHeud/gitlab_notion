@@ -1,0 +1,33 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_DRIVER: overlay
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE .
+
+test:
+  stage: test
+  script:
+    - docker run $CI_REGISTRY_IMAGE php ./vendor/bin/phpunit
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying to Google Cloud Run"
+    - gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+    - gcloud run deploy --image=$CI_REGISTRY_IMAGE --platform=managed --region=us-central1 --allow-unauthenticated --project=$GOOGLE_PROJECT_ID
+  only:
+    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'

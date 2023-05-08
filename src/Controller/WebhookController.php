@@ -15,10 +15,10 @@ use App\Service\MergeRequestService;
 class WebhookController extends AbstractController
 {
     private const DATABASE_ID = "410ad313-1241-4643-93e3-4d16ccb743b6";
-    private $logger;
-    private $notion;
-    private $gitlab;
-    private $mr;
+    private LoggerInterface $logger;
+    private NotionService $notion;
+    private GitlabService $gitlab;
+    private MergeRequestService $mr;
 
 
     public function __construct(
@@ -54,7 +54,7 @@ class WebhookController extends AbstractController
 
 
         $database = $this->notion->getDatabaseById(self::DATABASE_ID);
-        $result = $this->notion->queryPagesByPropertyId($database,"PlusID", 8);
+        $result = $this->notion->queryPagesByPropertyId($database,"PlusID", $id);
         $page = $this->notion->getPageById($result[0]->id);
 
         $urlNotion = $page->url;
@@ -69,14 +69,9 @@ class WebhookController extends AbstractController
 
         /** @var \Notion\Pages\Properties\RichTextProperty $property */
         $property = $page->getProperty("Gitlab");
-
-        if ($property->toArray()['url'] !== null) {
-            http_response_code(200);
-            die('Le lien est déjà présent dans le board Notion');
-        }
-        
+       
         // Send to Notion
-        $this->notion->updatePagePropertyLink($page, "Gitlab_",$url );
+        $this->notion->updatePagePropertyLink($page, "Gitlab",$url );
 
 
         return new Response('OK');

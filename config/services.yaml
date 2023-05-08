@@ -26,6 +26,7 @@ services:
         arguments:
             $token: '%env(NOTION_TOKEN)%'
 
+
 zeichen32_git_lab_api:
     clients:
         gitlab:

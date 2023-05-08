@@ -9,17 +9,20 @@ use App\Service\NotionService;
 use Notion\Blocks\Paragraph;
 use Notion\Common\RichText;
 use Notion\Common\Color;
+//use NotionClient;
 
 class NotionController extends AbstractController
 {
     public NotionService $notion;
-   // public BlockInterface $block;
+ //   public NotionClient $notionClient;
     private const DATABASE_ID = "410ad313-1241-4643-93e3-4d16ccb743b6";
 
-    public function __construct( NotionService $notion){
+    public function __construct( NotionService $notion, 
+    //NotionClient $notionClient
+    ){
         
         $this->notion = $notion;
-     //   $this->block = $block;
+        //$this-> notionClient = $notionClient;
     }
 
     #[Route('/notion', name: 'app_notion')]
@@ -34,7 +37,7 @@ class NotionController extends AbstractController
     $page = $this->notion->getPageById($result[0]->id);
     //dd($database->properties()->getAll());
     //$this->notion->filterPropertiesByPrefix((self::DATABASE_ID),$page, 'lala');
-    $this->notion->updatePagePropertyLink($page, "Gitlab", "https://url.com");
+    $this->notion->updatePagePropertyLink($page, "Gitlab", "https://url23.com");
     //$this->notion->updatePagePropertyLink($page, "Gitlab", "https://gitlab.com/unagi-games/test-webhook/-/merge_requests/2");
 
 

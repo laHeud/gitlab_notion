@@ -10,6 +10,7 @@ use Notion\Databases\Database;
 use Notion\Databases\Properties;
 use Notion\Pages\Page;
 use Notion\Common\File;
+use Notion\Pages\Properties\Files;
 
 class NotionService
 {
@@ -48,12 +49,23 @@ class NotionService
     
     public function updatePagePropertyLink(Page $page, string $propertyName, string $propertyValue): Page
     {
-        $file = File::createExternal($propertyValue);
-        dd($file);
-        $property = \Notion\Pages\Properties\Files::create($file);
-        $updatedPage = $page->addProperty($propertyName, $property);
+        // Récupérer la propriété existante.
+    $currentProperty = $page->getProperty($propertyName);
+        // Créer le nouveau fichier que vous voulez ajouter à la propriété
+    $newFile = File::createExternal($propertyValue)->changeName('Gitlab');
 
-        return $this->client->pages()->update($updatedPage);
+    if (is_null($currentProperty)) {
+        $currentProperty = Files::create();
+    }
+
+// Ajouter le nouveau fichier à la propriété existante, en utilisant la méthode addFile.
+    $updatedProperty = $currentProperty->addFile($newFile);
+
+// Mettre à jour la propriété pour la page donnée.
+    $updatedPage = $page->addProperty('Gitlab', $updatedProperty);
+
+// Enregistrer la modification sur Notion
+    return $this->client->pages()->update($updatedPage);
     }
 
 
@@ -87,6 +99,7 @@ class NotionService
 
     return $this->client->pages()->update($updatedPage1);
 }
+
 
 
 }
